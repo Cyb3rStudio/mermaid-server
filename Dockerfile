@@ -1,29 +1,17 @@
-# This stage builds the go executable.
-FROM golang:1.19.3-buster as go
-
+FROM golang:1.19-bullseye AS go
 WORKDIR /root
 COPY ./ ./
-
 RUN go build -o bin/app cmd/app/main.go
-
-
 # Final stage that will be pushed.
-FROM debian:buster-slim
-
-FROM node:18.10.0-buster-slim as node
-
+FROM node:18-bullseye-slim AS node
 WORKDIR /root
-
 # copy the mermaidcli node package into the container and install
 COPY ./mermaidcli/* ./
-
 RUN npm install && npm cache clean --force;
-
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update 2>/dev/null && \
-	apt-get install -y --no-install-recommends \
-		ca-certificates \
-		gconf-service \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
         libasound2 \
         libatk1.0-0 \
         libatk-bridge2.0-0 \
@@ -33,8 +21,7 @@ RUN apt-get update 2>/dev/null && \
         libdbus-1-3 \
         libexpat1 \
         libfontconfig1 \
-        libgcc1 \
-        libgconf-2-4 \
+        libgcc-s1 \
         libgdk-pixbuf2.0-0 \
         libglib2.0-0 \
         libgtk-3-0 \
@@ -57,22 +44,14 @@ RUN apt-get update 2>/dev/null && \
         libxtst6 \
         libxcb-dri3-0 \
         libgbm1 \
-        ca-certificates \
         fonts-liberation \
-        libappindicator1 \
         libnss3 \
         lsb-release \
         xdg-utils \
         wget \
         libxshmfence1 \
-		2>/dev/null && rm -rf /var/lib/apt/lists/*;
-
+    2>/dev/null && rm -rf /var/lib/apt/lists/*;
 COPY --from=go /root/bin/app ./app
-
-RUN mkdir -p ./in
-RUN mkdir -p ./out
-RUN chmod 0777 ./in
-RUN chmod 0777 ./out
-
+RUN mkdir -p ./in ./out && \
+    chmod 0777 ./in ./out
 CMD ["./app", "--allow-all-origins=true", "--mermaid=./node_modules/.bin/mmdc", "--in=./in", "--out=./out", "--puppeteer=./puppeteer-config.json"]
-
